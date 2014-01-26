@@ -65,8 +65,48 @@ public:
 };
 
 
+class FBBinderVisitor : public RecursiveASTVisitor<FBBinderVisitor> {
+  const CompilerInstance &Compiler;
+
+public:
+  FBBinderVisitor(const CompilerInstance &compiler)
+    : Compiler(compiler)
+  { }
+
+  bool shouldVisitTemplateInstantiations() const { return false; }
+  bool shouldWalkTypesOfTypeLocs() const { return false; }
+
+  bool VisitObjCMessageExpr(ObjCMessageExpr *E) {
+    if (E->getNumArgs() == 3 && E->isInstanceMessage() && E->getSelector().getAsString() == "bindToModel:keyPath:change:") {
+      QualType ModelType = E->getArg(0)->IgnoreImplicit()->getType();
+      ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
+
+      const ObjCObjectPointerType *ModelPointerType = ModelType->getAsObjCInterfacePointerType();
+
+      //llvm::outs() << "Checking... " << ModelType.getAsString() << " " << (ModelPointerType ? "MPT" : "") << "\n";
+      if (!ModelPointerType || !KeyPathLiteral)
+        return true;
+
+      const ObjCInterfaceDecl *ModelIntDecl = ModelPointerType->getInterfaceDecl();
+      ASTContext &Ctx = Compiler.getASTContext();
+
+      std::string KeyPathString = KeyPathLiteral->getString()->getString().str();
+      Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(KeyPathString));
+
+      if (!ModelIntDecl->lookupInstanceMethod(Sel)) {
+        DiagnosticsEngine &de = Compiler.getDiagnostics();
+        unsigned id = de.getCustomDiagID(DiagnosticsEngine::Warning, "Static key path '" + KeyPathString + "' not found as instance method on model class " + ModelType->getPointeeType().getAsString());
+        DiagnosticBuilder B = de.Report(KeyPathLiteral->getLocStart(), id);
+      }
+    }
+    return true;
+  }
+};
+
+
 void KeyPathValidationConsumer::HandleTranslationUnit(ASTContext &Context) {
   ValueForKeyVisitor(Compiler).TraverseDecl(Context.getTranslationUnitDecl());
+  FBBinderVisitor(Compiler).TraverseDecl(Context.getTranslationUnitDecl());
 }
 
 
