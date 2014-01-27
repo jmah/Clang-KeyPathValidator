@@ -67,18 +67,22 @@ public:
 
 class FBBinderVisitor : public RecursiveASTVisitor<FBBinderVisitor> {
   const CompilerInstance &Compiler;
+  unsigned DiagID;
 
 public:
   FBBinderVisitor(const CompilerInstance &compiler)
     : Compiler(compiler)
-  { }
+  {
+    DiagID = compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key path '%0' not found on model %1");
+  }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool shouldWalkTypesOfTypeLocs() const { return false; }
 
   bool VisitObjCMessageExpr(ObjCMessageExpr *E) {
     if (E->getNumArgs() == 3 && E->isInstanceMessage() && E->getSelector().getAsString() == "bindToModel:keyPath:change:") {
-      QualType ModelType = E->getArg(0)->IgnoreImplicit()->getType();
+      Expr *ModelArg = E->getArg(0);
+      QualType ModelType = ModelArg->IgnoreImplicit()->getType();
       ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
 
       const ObjCObjectPointerType *ModelPointerType = ModelType->getAsObjCInterfacePointerType();
@@ -94,9 +98,9 @@ public:
       Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(KeyPathString));
 
       if (!ModelIntDecl->lookupInstanceMethod(Sel)) {
-        DiagnosticsEngine &de = Compiler.getDiagnostics();
-        unsigned id = de.getCustomDiagID(DiagnosticsEngine::Warning, "Static key path '" + KeyPathString + "' not found as instance method on model class " + ModelType->getPointeeType().getAsString());
-        DiagnosticBuilder B = de.Report(KeyPathLiteral->getLocStart(), id);
+        Compiler.getDiagnostics().Report(KeyPathLiteral->getLocStart(), DiagID)
+          << KeyPathString << ModelType->getPointeeType().getAsString()
+          << KeyPathLiteral->getSourceRange() << ModelArg->getSourceRange();
       }
     }
     return true;
