@@ -55,8 +55,8 @@ public:
 
         if (!RecvID->lookupInstanceMethod(Sel)) {
           DiagnosticsEngine &de = Compiler.getDiagnostics();
-          unsigned id = de.getCustomDiagID(DiagnosticsEngine::Warning, "test vfk " + KeyString);
-          DiagnosticBuilder B = de.Report(E->getLocStart(), id);
+          unsigned id = de.getCustomDiagID(DiagnosticsEngine::Warning, "test vfk %0");
+          de.Report(E->getLocStart(), id) << KeyString;
         }
       }
     }
@@ -126,7 +126,7 @@ public:
 
     Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(Key));
     ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
-    return Method ? Method->getResultType() : QualType();
+    return Method ? Method->getReturnType() : QualType();
   }
 };
 
