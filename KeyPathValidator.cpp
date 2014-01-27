@@ -85,25 +85,48 @@ public:
       QualType ModelType = ModelArg->IgnoreImplicit()->getType();
       ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
 
-      const ObjCObjectPointerType *ModelPointerType = ModelType->getAsObjCInterfacePointerType();
-
-      //llvm::outs() << "Checking... " << ModelType.getAsString() << " " << (ModelPointerType ? "MPT" : "") << "\n";
-      if (!ModelPointerType || !KeyPathLiteral)
+      if (!KeyPathLiteral)
         return true;
 
-      const ObjCInterfaceDecl *ModelIntDecl = ModelPointerType->getInterfaceDecl();
-      ASTContext &Ctx = Compiler.getASTContext();
+      QualType PrevType = ModelType;
+      size_t Offset = 2; // @"
+      typedef std::pair<StringRef,StringRef> StringPair;
+      for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
+        StringRef Key = KeyAndPath.first;
+        QualType NextType = CheckKeyPathElement(PrevType, Key);
+        if (NextType.isNull()) {
+          SourceRange KeyRange = KeyPathLiteral->getSourceRange();
+          SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
+          KeyRange.setBegin(KeyStart);
+          KeyRange.setEnd(KeyStart.getLocWithOffset(1));
 
-      std::string KeyPathString = KeyPathLiteral->getString()->getString().str();
-      Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(KeyPathString));
-
-      if (!ModelIntDecl->lookupInstanceMethod(Sel)) {
-        Compiler.getDiagnostics().Report(KeyPathLiteral->getLocStart(), DiagID)
-          << KeyPathString << ModelType->getPointeeType().getAsString()
-          << KeyPathLiteral->getSourceRange() << ModelArg->getSourceRange();
+          Compiler.getDiagnostics().Report(KeyStart, DiagID)
+            << Key << PrevType->getPointeeType().getAsString()
+            << KeyRange << ModelArg->getSourceRange();
+          break;
+        }
+        PrevType = NextType;
+        Offset += Key.size() + 1;
       }
     }
     return true;
+  }
+
+
+  QualType CheckKeyPathElement(QualType ObjType, StringRef &Key) {
+    // TODO: Primitives to NSValue / NSNumber
+    ASTContext &Ctx = Compiler.getASTContext();
+    const ObjCObjectPointerType *ObjPointerType = ObjType->getAsObjCInterfacePointerType();
+    if (!ObjPointerType)
+      return QualType();
+
+    const ObjCInterfaceDecl *ObjInterface = ObjPointerType->getInterfaceDecl();
+    if (!ObjInterface)
+      return QualType();
+
+    Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(Key));
+    ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
+    return Method ? Method->getResultType() : QualType();
   }
 };
 
