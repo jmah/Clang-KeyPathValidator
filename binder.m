@@ -10,7 +10,7 @@ static void testFn(void)
 {
     Bindable *obj;
     NSTimer *t = nil;
-    [obj bindToModel:t keyPath:@"fireDate" change:^{}];
+    [obj bindToModel:t keyPath:@"self.fireDate" change:^{}];
     [obj bindToModel:t keyPath:@"fireDate.timeIntervalSinceNow" change:^{}];
     [obj bindToModel:[NSRunLoop mainRunLoop] keyPath:@"currentMode.length.foo" change:^{}];
     [obj bindToModel:t keyPath:@"doesNotExst" change:^{}];
