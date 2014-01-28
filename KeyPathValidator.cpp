@@ -134,6 +134,8 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
     if (!ObjInterface)
       return false;
 
+    // TODO: Special case selector: 'self'
+    // TODO: Special case ObjType: NSArray, NSSet, NSDictionary, etc.
     Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(Key));
     ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
     if (!Method)
