@@ -26,17 +26,21 @@ public:
 
   virtual void HandleTranslationUnit(clang::ASTContext &Context);
 
+  bool CheckKeyType(QualType &ObjTypeInOut, StringRef &Key);
+
 private:
   const CompilerInstance &Compiler;
 };
 
 
 class ValueForKeyVisitor : public RecursiveASTVisitor<ValueForKeyVisitor> {
+  KeyPathValidationConsumer *Consumer;
   const CompilerInstance &Compiler;
 
 public:
-  ValueForKeyVisitor(const CompilerInstance &compiler)
-    : Compiler(compiler)
+  ValueForKeyVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &compiler)
+    : Consumer(Consumer)
+    , Compiler(compiler)
   { }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
@@ -66,14 +70,16 @@ public:
 
 
 class FBBinderVisitor : public RecursiveASTVisitor<FBBinderVisitor> {
+  KeyPathValidationConsumer *Consumer;
   const CompilerInstance &Compiler;
   unsigned DiagID;
 
 public:
-  FBBinderVisitor(const CompilerInstance &compiler)
-    : Compiler(compiler)
+  FBBinderVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &Compiler)
+    : Consumer(Consumer)
+    , Compiler(Compiler)
   {
-    DiagID = compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key path '%0' not found on model %1");
+    DiagID = Compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key path '%0' not found on model %1");
   }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
@@ -88,52 +94,55 @@ public:
       if (!KeyPathLiteral)
         return true;
 
-      QualType PrevType = ModelType;
+      QualType ObjType = ModelType;
       size_t Offset = 2; // @"
       typedef std::pair<StringRef,StringRef> StringPair;
       for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
         StringRef Key = KeyAndPath.first;
-        QualType NextType = CheckKeyPathElement(PrevType, Key);
-        if (NextType.isNull()) {
+        bool Valid = Consumer->CheckKeyType(ObjType, Key);
+        if (!Valid) {
           SourceRange KeyRange = KeyPathLiteral->getSourceRange();
           SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
           KeyRange.setBegin(KeyStart);
           KeyRange.setEnd(KeyStart.getLocWithOffset(1));
 
           Compiler.getDiagnostics().Report(KeyStart, DiagID)
-            << Key << PrevType->getPointeeType().getAsString()
+            << Key << ObjType->getPointeeType().getAsString()
             << KeyRange << ModelArg->getSourceRange();
           break;
         }
-        PrevType = NextType;
         Offset += Key.size() + 1;
       }
     }
     return true;
   }
-
-
-  QualType CheckKeyPathElement(QualType ObjType, StringRef &Key) {
-    // TODO: Primitives to NSValue / NSNumber
-    ASTContext &Ctx = Compiler.getASTContext();
-    const ObjCObjectPointerType *ObjPointerType = ObjType->getAsObjCInterfacePointerType();
-    if (!ObjPointerType)
-      return QualType();
-
-    const ObjCInterfaceDecl *ObjInterface = ObjPointerType->getInterfaceDecl();
-    if (!ObjInterface)
-      return QualType();
-
-    Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(Key));
-    ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
-    return Method ? Method->getReturnType() : QualType();
-  }
 };
 
 
 void KeyPathValidationConsumer::HandleTranslationUnit(ASTContext &Context) {
-  ValueForKeyVisitor(Compiler).TraverseDecl(Context.getTranslationUnitDecl());
-  FBBinderVisitor(Compiler).TraverseDecl(Context.getTranslationUnitDecl());
+  ValueForKeyVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
+  FBBinderVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
+}
+
+bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key) {
+    ASTContext &Ctx = Compiler.getASTContext();
+    const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType();
+    if (!ObjPointerType)
+      return false;
+
+    const ObjCInterfaceDecl *ObjInterface = ObjPointerType->getInterfaceDecl();
+    if (!ObjInterface)
+      return false;
+
+    Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(Key));
+    ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
+    if (!Method)
+      return false;
+
+    ObjTypeInOut = Method->getReturnType();
+    // TODO: Primitives to NSValue / NSNumber
+    return true;
+  ;
 }
 
 
