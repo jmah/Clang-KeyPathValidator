@@ -9,6 +9,7 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "clang/AST/AST.h"
 #include "clang/AST/ASTConsumer.h"
+#include "clang/AST/NSAPI.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "llvm/Support/raw_ostream.h"
@@ -19,17 +20,22 @@ namespace {
 
 class KeyPathValidationConsumer : public ASTConsumer {
 public:
-  KeyPathValidationConsumer(const CompilerInstance &compiler)
+  KeyPathValidationConsumer(const CompilerInstance &Compiler)
     : ASTConsumer()
-    , Compiler(compiler)
-  { }
+    , Compiler(Compiler)
+    , Context(Compiler.getASTContext())
+  {
+    NSAPIObj.reset(new NSAPI(Context));
+  }
 
-  virtual void HandleTranslationUnit(clang::ASTContext &Context);
+  virtual void HandleTranslationUnit(ASTContext &Context);
 
   bool CheckKeyType(QualType &ObjTypeInOut, StringRef &Key);
 
 private:
   const CompilerInstance &Compiler;
+  ASTContext &Context;
+  OwningPtr<NSAPI> NSAPIObj;
 };
 
 
@@ -38,9 +44,9 @@ class ValueForKeyVisitor : public RecursiveASTVisitor<ValueForKeyVisitor> {
   const CompilerInstance &Compiler;
 
 public:
-  ValueForKeyVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &compiler)
+  ValueForKeyVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &Compiler)
     : Consumer(Consumer)
-    , Compiler(compiler)
+    , Compiler(Compiler)
   { }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
@@ -125,29 +131,38 @@ void KeyPathValidationConsumer::HandleTranslationUnit(ASTContext &Context) {
 }
 
 bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key) {
-    ASTContext &Ctx = Compiler.getASTContext();
-    const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType();
-    if (!ObjPointerType)
-      return false;
+  const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType();
+  if (!ObjPointerType)
+    return false;
 
-    const ObjCInterfaceDecl *ObjInterface = ObjPointerType->getInterfaceDecl();
-    if (!ObjInterface)
-      return false;
+  const ObjCInterfaceDecl *ObjInterface = ObjPointerType->getInterfaceDecl();
+  if (!ObjInterface)
+    return false;
 
-    // Special case keys
-    if (Key.equals("self"))
-      return true; // leave ObjTypeInOut unchanged
+  // Special case keys
+  if (Key.equals("self"))
+    return true; // leave ObjTypeInOut unchanged
 
-    // TODO: Special case ObjType: NSArray, NSSet, NSDictionary, etc.
-    Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(Key));
-    ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
-    if (!Method)
-      return false;
+  // TODO: Special case ObjType: NSArray, NSSet, NSDictionary, etc.
+  Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
+  ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
+  if (!Method)
+    return false;
 
-    ObjTypeInOut = Method->getReturnType();
-    // TODO: Primitives to NSValue / NSNumber
-    return true;
-  ;
+  ObjTypeInOut = Method->getReturnType();
+  if (!ObjTypeInOut->isObjCObjectPointerType())
+    if (NSAPIObj->getNSNumberFactoryMethodKind(ObjTypeInOut).hasValue()) {
+      IdentifierInfo *NSNumberId = NSAPIObj->getNSClassId(NSAPI::ClassId_NSNumber);
+      TranslationUnitDecl *TUD = Context.getTranslationUnitDecl();
+      DeclContext::lookup_result R = TUD->lookup(NSNumberId);
+      if (R.size() > 0) {
+        ObjCInterfaceDecl *NSNumberDecl = dyn_cast<ObjCInterfaceDecl>(R[0]);
+        ObjTypeInOut = Context.getObjCObjectPointerType(Context.getObjCInterfaceType(NSNumberDecl));
+      }
+    }
+
+  // TODO: Primitives to NSValue / NSNumber
+  return true;
 }
 
 
