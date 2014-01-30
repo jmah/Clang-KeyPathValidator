@@ -97,33 +97,37 @@ public:
   bool shouldWalkTypesOfTypeLocs() const { return false; }
 
   bool VisitObjCMessageExpr(ObjCMessageExpr *E) {
-    if (E->getNumArgs() == 3 && E->isInstanceMessage() && E->getSelector() == BindSelector) {
-      Expr *ModelArg = E->getArg(0);
-      QualType ModelType = ModelArg->IgnoreImplicit()->getType();
-      ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
+    if (E->getNumArgs() != 3 || !E->isInstanceMessage())
+      return true;
 
-      if (!KeyPathLiteral)
-        return true;
+    if (E->getSelector() != BindSelector)
+      return true;
 
-      QualType ObjType = ModelType;
-      size_t Offset = 2; // @"
-      typedef std::pair<StringRef,StringRef> StringPair;
-      for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
-        StringRef Key = KeyAndPath.first;
-        bool Valid = Consumer->CheckKeyType(ObjType, Key);
-        if (!Valid) {
-          SourceRange KeyRange = KeyPathLiteral->getSourceRange();
-          SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
-          KeyRange.setBegin(KeyStart);
-          KeyRange.setEnd(KeyStart.getLocWithOffset(1));
+    Expr *ModelArg = E->getArg(0);
+    QualType ModelType = ModelArg->IgnoreImplicit()->getType();
+    ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
 
-          Compiler.getDiagnostics().Report(KeyStart, DiagID)
-            << Key << ObjType->getPointeeType().getAsString()
-            << KeyRange << ModelArg->getSourceRange();
-          break;
-        }
-        Offset += Key.size() + 1;
+    if (!KeyPathLiteral)
+      return true;
+
+    QualType ObjType = ModelType;
+    size_t Offset = 2; // @"
+    typedef std::pair<StringRef,StringRef> StringPair;
+    for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
+      StringRef Key = KeyAndPath.first;
+      bool Valid = Consumer->CheckKeyType(ObjType, Key);
+      if (!Valid) {
+        SourceRange KeyRange = KeyPathLiteral->getSourceRange();
+        SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
+        KeyRange.setBegin(KeyStart);
+        KeyRange.setEnd(KeyStart.getLocWithOffset(1));
+
+        Compiler.getDiagnostics().Report(KeyStart, DiagID)
+          << Key << ObjType->getPointeeType().getAsString()
+          << KeyRange << ModelArg->getSourceRange();
+        break;
       }
+      Offset += Key.size() + 1;
     }
     return true;
   }
