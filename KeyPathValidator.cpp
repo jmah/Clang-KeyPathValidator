@@ -26,11 +26,14 @@ public:
     , Context(Compiler.getASTContext())
   {
     NSAPIObj.reset(new NSAPI(Context));
+    KeyDiagID = Compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key '%0' not found on type %1");
   }
 
   virtual void HandleTranslationUnit(ASTContext &Context);
 
   bool CheckKeyType(QualType &ObjTypeInOut, StringRef &Key);
+
+  unsigned KeyDiagID;
 
 private:
   const CompilerInstance &Compiler;
@@ -42,34 +45,72 @@ private:
 class ValueForKeyVisitor : public RecursiveASTVisitor<ValueForKeyVisitor> {
   KeyPathValidationConsumer *Consumer;
   const CompilerInstance &Compiler;
+  Selector VFKSelector, VFKPathSelector;
 
 public:
   ValueForKeyVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &Compiler)
     : Consumer(Consumer)
     , Compiler(Compiler)
-  { }
+  {
+    ASTContext &Ctx = Compiler.getASTContext();
+    VFKSelector = Ctx.Selectors.getUnarySelector(&Ctx.Idents.get("valueForKey"));
+    VFKPathSelector = Ctx.Selectors.getUnarySelector(&Ctx.Idents.get("valueForKeyPath"));
+  }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool shouldWalkTypesOfTypeLocs() const { return false; }
 
   bool VisitObjCMessageExpr(ObjCMessageExpr *E) {
-    if (E->getNumArgs() == 1 && E->isInstanceMessage() && E->getSelector().getAsString() == "valueForKey:") {
-      Expr *A1 = E->getArg(0);
+    if (E->getNumArgs() != 1 || !E->isInstanceMessage())
+      return true;
 
-      if (ObjCStringLiteral *SL = dyn_cast<ObjCStringLiteral>(A1)) {
-        ObjCInterfaceDecl *RecvID = E->getReceiverInterface();
-        ASTContext &Ctx = Compiler.getASTContext();
+    Selector Sel = E->getSelector();
+    if (Sel != VFKSelector && Sel != VFKPathSelector)
+      return true;
 
-        std::string KeyString = SL->getString()->getString().str();
-        Selector Sel = Ctx.Selectors.getNullarySelector(&Ctx.Idents.get(KeyString));
+    ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(0));
+    if (!KeyPathLiteral)
+      return true;
 
-        if (!RecvID->lookupInstanceMethod(Sel)) {
-          DiagnosticsEngine &de = Compiler.getDiagnostics();
-          unsigned id = de.getCustomDiagID(DiagnosticsEngine::Warning, "test vfk %0");
-          de.Report(E->getLocStart(), id) << KeyString;
-        }
-      }
+    bool path = (Sel == VFKPathSelector);
+    StringRef KeyPathString = KeyPathLiteral->getString()->getString();
+    const size_t KeyCount = 1 + (path ? KeyPathString.count('.') : 0);
+
+    StringRef *Keys = new StringRef[KeyCount];
+    if (path) {
+      typedef std::pair<StringRef,StringRef> StringPair;
+      size_t i = 0;
+      for (StringPair KeyAndPath = KeyPathString.split('.');
+          KeyAndPath.first.size() > 0;
+          KeyAndPath = KeyAndPath.second.split('.'))
+        Keys[i++] = KeyAndPath.first;
+    } else {
+      Keys[0] = KeyPathString;
     }
+
+    ASTContext &Ctx = Compiler.getASTContext();
+    QualType ObjType = Ctx.getObjCObjectPointerType(Ctx.getObjCInterfaceType(E->getReceiverInterface()));
+    size_t Offset = path ? 2 : 0; // @"  (but whole string for non-path, TODO: Set to 2 and properly adjust end of range)
+    for (size_t i = 0; i < KeyCount; i++) {
+      StringRef Key = Keys[i];
+
+      bool Valid = Consumer->CheckKeyType(ObjType, Key);
+      if (!Valid) {
+        SourceRange KeyRange = KeyPathLiteral->getSourceRange();
+        SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
+        KeyRange.setBegin(KeyStart);
+        if (path)
+          KeyRange.setEnd(KeyStart.getLocWithOffset(1));
+
+        Compiler.getDiagnostics().Report(KeyStart, Consumer->KeyDiagID)
+          << Key << ObjType->getPointeeType().getAsString()
+          << KeyRange << E->getReceiverRange();
+        break;
+      }
+      Offset += Key.size() + 1;
+    }
+
+    delete[] Keys;
     return true;
   }
 };
@@ -78,7 +119,6 @@ public:
 class FBBinderVisitor : public RecursiveASTVisitor<FBBinderVisitor> {
   KeyPathValidationConsumer *Consumer;
   const CompilerInstance &Compiler;
-  unsigned DiagID;
   Selector BindSelector;
 
 public:
@@ -86,7 +126,6 @@ public:
     : Consumer(Consumer)
     , Compiler(Compiler)
   {
-    DiagID = Compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key path '%0' not found on model %1");
     ASTContext &Ctx = Compiler.getASTContext();
     IdentifierTable &IDs = Ctx.Idents;
     IdentifierInfo *BindIIs[3] = {&IDs.get("bindToModel"), &IDs.get("keyPath"), &IDs.get("change")};
@@ -122,7 +161,7 @@ public:
         KeyRange.setBegin(KeyStart);
         KeyRange.setEnd(KeyStart.getLocWithOffset(1));
 
-        Compiler.getDiagnostics().Report(KeyStart, DiagID)
+        Compiler.getDiagnostics().Report(KeyStart, Consumer->KeyDiagID)
           << Key << ObjType->getPointeeType().getAsString()
           << KeyRange << ModelArg->getSourceRange();
         break;
