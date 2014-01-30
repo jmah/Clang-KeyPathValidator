@@ -79,6 +79,7 @@ class FBBinderVisitor : public RecursiveASTVisitor<FBBinderVisitor> {
   KeyPathValidationConsumer *Consumer;
   const CompilerInstance &Compiler;
   unsigned DiagID;
+  Selector BindSelector;
 
 public:
   FBBinderVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &Compiler)
@@ -86,13 +87,17 @@ public:
     , Compiler(Compiler)
   {
     DiagID = Compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key path '%0' not found on model %1");
+    ASTContext &Ctx = Compiler.getASTContext();
+    IdentifierTable &IDs = Ctx.Idents;
+    IdentifierInfo *BindIIs[3] = {&IDs.get("bindToModel"), &IDs.get("keyPath"), &IDs.get("change")};
+    BindSelector = Ctx.Selectors.getSelector(3, BindIIs);
   }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
   bool shouldWalkTypesOfTypeLocs() const { return false; }
 
   bool VisitObjCMessageExpr(ObjCMessageExpr *E) {
-    if (E->getNumArgs() == 3 && E->isInstanceMessage() && E->getSelector().getAsString() == "bindToModel:keyPath:change:") {
+    if (E->getNumArgs() == 3 && E->isInstanceMessage() && E->getSelector() == BindSelector) {
       Expr *ModelArg = E->getArg(0);
       QualType ModelType = ModelArg->IgnoreImplicit()->getType();
       ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
