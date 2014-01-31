@@ -15,4 +15,7 @@ static void testFn(void)
     [obj bindToModel:[NSRunLoop mainRunLoop] keyPath:@"currentMode.length.foo" change:^{}];
     [obj bindToModel:[NSRunLoop mainRunLoop] keyPath:@"currentMode.length.integerValue" change:^{}];
     [obj bindToModel:t keyPath:@"doesNotExst" change:^{}];
+
+    id idObj;
+    [obj bindToModel:idObj keyPath:@"foo" change:^{}];
 }

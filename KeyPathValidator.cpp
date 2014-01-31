@@ -89,7 +89,14 @@ public:
     }
 
     ASTContext &Ctx = Compiler.getASTContext();
-    QualType ObjType = Ctx.getObjCObjectPointerType(Ctx.getObjCInterfaceType(E->getReceiverInterface()));
+    ObjCInterfaceDecl *Interface = E->getReceiverInterface();
+    QualType ObjType;
+
+    if (Interface)
+      ObjType = Ctx.getObjCObjectPointerType(Ctx.getObjCInterfaceType(Interface));
+    else
+      ObjType = Ctx.getObjCIdType();
+
     size_t Offset = path ? 2 : 0; // @"  (but whole string for non-path, TODO: Set to 2 and properly adjust end of range)
     for (size_t i = 0; i < KeyCount; i++) {
       StringRef Key = Keys[i];
@@ -179,6 +186,9 @@ void KeyPathValidationConsumer::HandleTranslationUnit(ASTContext &Context) {
 }
 
 bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key) {
+  if (ObjTypeInOut->isObjCIdType())
+    return true; // don't type-check id objects, leave ObjTypeInOut as 'id'
+
   const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType();
   if (!ObjPointerType)
     return false;
@@ -187,11 +197,24 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
   if (!ObjInterface)
     return false;
 
+  // Special case receivers
+  // Cocoa collections
+  ; // NSArray, NSSet, NSOrderedSet (+ mutable) should be same inout; NSNumber for @
+
+
+#if 0 // TODO
+  if (ObjTypeInOut isNSDictionary or subclass) {
+    ObjTypeInOut = Context.getObjCIdType();
+    return true;
+  }
+#endif
+
+
   // Special case keys
   if (Key.equals("self"))
     return true; // leave ObjTypeInOut unchanged
 
-  // TODO: Special case ObjType: NSArray, NSSet, NSDictionary, etc.
+  // TODO: Look up property, not just selector
   Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
   ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
   if (!Method)
@@ -209,7 +232,7 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
       }
     }
 
-  // TODO: Primitives to NSValue / NSNumber
+  // TODO: Primitives to NSValue
   return true;
 }
 

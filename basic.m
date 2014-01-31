@@ -9,6 +9,9 @@ static void testFn(void)
     [t valueForKey:@"fireDate.timeIntervalSinceNow"]; // warn
     [t valueForKey:@"doesNotExist"]; // warn
 
+    id idObj = t;
+    [idObj valueForKeyPath:@"fireDate.foo.bar"];
+
     NSString *stringVar;
     [t valueForKey:stringVar];
 
