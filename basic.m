@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 
-__attribute__((annotate("objc_kvc_container"))) @interface MyDictLike : NSObject
+__attribute__((annotate("objc_kvc_container")))
+@interface MyDictLike : NSObject
 @end
 
 static void testFn(void)

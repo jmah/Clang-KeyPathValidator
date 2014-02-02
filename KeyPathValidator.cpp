@@ -115,11 +115,25 @@ bool KeyPathValidationConsumer::isKVCContainer(QualType Type) {
   if (const ObjCObjectPointerType *ObjPointerType = Type->getAsObjCInterfacePointerType())
     ObjInterface = ObjPointerType->getInterfaceDecl();
 
-  return (
-      NSDictionaryInterface->isSuperClassOf(ObjInterface) ||
+  // Foundation built-ins
+  if (NSDictionaryInterface->isSuperClassOf(ObjInterface) ||
       NSArrayInterface->isSuperClassOf(ObjInterface) ||
       NSSetInterface ->isSuperClassOf(ObjInterface)||
-      NSOrderedSetInterface->isSuperClassOf(ObjInterface));
+      NSOrderedSetInterface->isSuperClassOf(ObjInterface))
+    return true;
+
+  // Check for attribute
+  while (ObjInterface) {
+    for (Decl::attr_iterator Attr = ObjInterface->attr_begin(), AttrEnd = ObjInterface->attr_end();
+        Attr != AttrEnd; ++Attr) {
+      if (AnnotateAttr *AA = dyn_cast<AnnotateAttr>(*Attr))
+        if (AA->getAnnotation().equals("objc_kvc_container"))
+          return true;
+    }
+
+    ObjInterface = ObjInterface->getSuperClass();
+  }
+  return false;
 }
 
 
