@@ -1,5 +1,8 @@
 #import <Foundation/Foundation.h>
 
+__attribute__((annotate("objc_kvc_container"))) @interface MyDictLike : NSObject
+@end
+
 static void testFn(void)
 {
     NSTimer *t = nil;
@@ -17,4 +20,10 @@ static void testFn(void)
 
     NSDictionary *d;
     [d valueForKey:@"anythingIsOk"];
+    [(NSMutableDictionary *)d valueForKey:@"anythingIsOk"];
+    [(MyDictLike *)d valueForKey:@"anythingIsOk"];
+
+    NSArray *a;
+    [a valueForKey:@"anythingIsOk"];
+    [a valueForKey:@"@count"];
 }

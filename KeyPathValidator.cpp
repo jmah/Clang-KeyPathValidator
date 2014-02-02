@@ -39,8 +39,93 @@ private:
   const CompilerInstance &Compiler;
   ASTContext &Context;
   OwningPtr<NSAPI> NSAPIObj;
+
+  QualType NSNumberPtrType;
+
+  // Hard-coded set of KVC containers (can't add attributes in a category)
+  ObjCInterfaceDecl *NSDictionaryInterface, *NSArrayInterface, *NSSetInterface, *NSOrderedSetInterface;
+
+  void cacheNSTypes();
+  bool isKVCContainer(QualType type);
 };
 
+
+void KeyPathValidationConsumer::cacheNSTypes() {
+  TranslationUnitDecl *TUD = Context.getTranslationUnitDecl();
+
+  { DeclContext::lookup_result R = TUD->lookup(&Context.Idents.get("NSNumber"));
+    if (R.size() > 0) {
+      ObjCInterfaceDecl *NSNumberDecl = dyn_cast<ObjCInterfaceDecl>(R[0]);
+      NSNumberPtrType = Context.getObjCObjectPointerType(Context.getObjCInterfaceType(NSNumberDecl));
+    } }
+
+  { DeclContext::lookup_result R = TUD->lookup(&Context.Idents.get("NSDictionary"));
+    if (R.size() > 0)
+      NSDictionaryInterface = dyn_cast<ObjCInterfaceDecl>(R[0]); }
+
+  { DeclContext::lookup_result R = TUD->lookup(&Context.Idents.get("NSArray"));
+    if (R.size() > 0)
+      NSArrayInterface = dyn_cast<ObjCInterfaceDecl>(R[0]); }
+
+  { DeclContext::lookup_result R = TUD->lookup(&Context.Idents.get("NSSet"));
+    if (R.size() > 0)
+      NSSetInterface = dyn_cast<ObjCInterfaceDecl>(R[0]); }
+
+  { DeclContext::lookup_result R = TUD->lookup(&Context.Idents.get("NSOrderedSet"));
+    if (R.size() > 0)
+      NSOrderedSetInterface = dyn_cast<ObjCInterfaceDecl>(R[0]); }
+}
+
+
+bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key) {
+  if (isKVCContainer(ObjTypeInOut)) {
+    ObjTypeInOut = Context.getObjCIdType();
+    return true;
+  }
+
+  // Special case keys
+  if (Key.equals("self"))
+    return true; // leave ObjTypeInOut unchanged
+
+
+  const ObjCInterfaceDecl *ObjInterface = NULL;
+  if (const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType())
+    ObjInterface = ObjPointerType->getInterfaceDecl();
+
+  // TODO: Look up property, not just selector
+  Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
+  ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
+  if (!Method)
+    return false;
+
+  ObjTypeInOut = Method->getReturnType();
+  if (!ObjTypeInOut->isObjCObjectPointerType())
+    if (NSAPIObj->getNSNumberFactoryMethodKind(ObjTypeInOut).hasValue())
+      ObjTypeInOut = NSNumberPtrType;
+
+  // TODO: Primitives to NSValue
+  return true;
+}
+
+bool KeyPathValidationConsumer::isKVCContainer(QualType Type) {
+  if (Type->isObjCIdType())
+    return true;
+
+  const ObjCInterfaceDecl *ObjInterface = NULL;
+  if (const ObjCObjectPointerType *ObjPointerType = Type->getAsObjCInterfacePointerType())
+    ObjInterface = ObjPointerType->getInterfaceDecl();
+
+  return (
+      NSDictionaryInterface->isSuperClassOf(ObjInterface) ||
+      NSArrayInterface->isSuperClassOf(ObjInterface) ||
+      NSSetInterface ->isSuperClassOf(ObjInterface)||
+      NSOrderedSetInterface->isSuperClassOf(ObjInterface));
+}
+
+
+//
+// ----
+//
 
 class ValueForKeyVisitor : public RecursiveASTVisitor<ValueForKeyVisitor> {
   KeyPathValidationConsumer *Consumer;
@@ -181,59 +266,10 @@ public:
 
 
 void KeyPathValidationConsumer::HandleTranslationUnit(ASTContext &Context) {
+  cacheNSTypes();
+
   ValueForKeyVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
   FBBinderVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
-}
-
-bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key) {
-  if (ObjTypeInOut->isObjCIdType())
-    return true; // don't type-check id objects, leave ObjTypeInOut as 'id'
-
-  const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType();
-  if (!ObjPointerType)
-    return false;
-
-  const ObjCInterfaceDecl *ObjInterface = ObjPointerType->getInterfaceDecl();
-  if (!ObjInterface)
-    return false;
-
-  // Special case receivers
-  // Cocoa collections
-  ; // NSArray, NSSet, NSOrderedSet (+ mutable) should be same inout; NSNumber for @
-
-
-#if 0 // TODO
-  if (ObjTypeInOut isNSDictionary or subclass) {
-    ObjTypeInOut = Context.getObjCIdType();
-    return true;
-  }
-#endif
-
-
-  // Special case keys
-  if (Key.equals("self"))
-    return true; // leave ObjTypeInOut unchanged
-
-  // TODO: Look up property, not just selector
-  Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
-  ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
-  if (!Method)
-    return false;
-
-  ObjTypeInOut = Method->getReturnType();
-  if (!ObjTypeInOut->isObjCObjectPointerType())
-    if (NSAPIObj->getNSNumberFactoryMethodKind(ObjTypeInOut).hasValue()) {
-      IdentifierInfo *NSNumberId = NSAPIObj->getNSClassId(NSAPI::ClassId_NSNumber);
-      TranslationUnitDecl *TUD = Context.getTranslationUnitDecl();
-      DeclContext::lookup_result R = TUD->lookup(NSNumberId);
-      if (R.size() > 0) {
-        ObjCInterfaceDecl *NSNumberDecl = dyn_cast<ObjCInterfaceDecl>(R[0]);
-        ObjTypeInOut = Context.getObjCObjectPointerType(Context.getObjCInterfaceType(NSNumberDecl));
-      }
-    }
-
-  // TODO: Primitives to NSValue
-  return true;
 }
 
 
