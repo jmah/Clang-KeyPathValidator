@@ -92,9 +92,17 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
   if (const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType())
     ObjInterface = ObjPointerType->getInterfaceDecl();
 
-  // TODO: Look up property, not just selector
-  Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
-  ObjCMethodDecl *Method = ObjInterface->lookupInstanceMethod(Sel);
+  ObjCMethodDecl *Method = NULL;
+  {
+    Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
+    Method = ObjInterface->lookupInstanceMethod(Sel);
+
+    if (!Method) {
+      StringRef IsKey = ("is" + Key.substr(0, 1).upper() + Key.substr(1)).str();
+      Selector IsSel = Context.Selectors.getNullarySelector(&Context.Idents.get(IsKey));
+      Method = ObjInterface->lookupInstanceMethod(IsSel);
+    }
+  }
   if (!Method)
     return false;
 

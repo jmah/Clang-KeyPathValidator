@@ -4,6 +4,11 @@ __attribute__((annotate("objc_kvc_container")))
 @interface MyDictLike : NSObject
 @end
 
+@interface Variation : NSObject
+@property (getter = isFoo) BOOL foo;
+@end
+
+
 static void testFn(void)
 {
     NSTimer *t = nil;
@@ -27,4 +32,7 @@ static void testFn(void)
     NSArray *a;
     [a valueForKey:@"anythingIsOk"];
     [a valueForKey:@"@count"];
+
+    Variation *v;
+    [v valueForKey:@"foo"];
 }
