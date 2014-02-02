@@ -3,6 +3,7 @@
 @interface Bindable : NSObject
 
 - (void)bindToModel:(id)m keyPath:(NSString *)kp change:(void (^)(void))blk;
+- (void)bindToModels:(NSArray *)ms keyPaths:(NSArray *)kps change:(void (^)(void))blk;
 
 @end
 
@@ -18,4 +19,6 @@ static void testFn(void)
 
     id idObj;
     [obj bindToModel:idObj keyPath:@"foo" change:^{}];
+
+    [obj bindToModels:@[t, idObj] keyPaths:@[@[@"fireDate", @"doesNotExist"], @[@"doesNotExist"]] change:^{}];
 }

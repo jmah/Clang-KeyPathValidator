@@ -231,9 +231,12 @@ public:
 
 
 class FBBinderVisitor : public RecursiveASTVisitor<FBBinderVisitor> {
+private:
   KeyPathValidationConsumer *Consumer;
   const CompilerInstance &Compiler;
   Selector BindSelector;
+  Selector BindMultipleSelector;
+  unsigned BindMultipleCountMismatchDiagID;
 
 public:
   FBBinderVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &Compiler)
@@ -244,6 +247,10 @@ public:
     IdentifierTable &IDs = Ctx.Idents;
     IdentifierInfo *BindIIs[3] = {&IDs.get("bindToModel"), &IDs.get("keyPath"), &IDs.get("change")};
     BindSelector = Ctx.Selectors.getSelector(3, BindIIs);
+
+    IdentifierInfo *BindMultipleIIs[3] = {&IDs.get("bindToModels"), &IDs.get("keyPaths"), &IDs.get("change")};
+    BindMultipleSelector = Ctx.Selectors.getSelector(3, BindMultipleIIs);
+    BindMultipleCountMismatchDiagID = Compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Error, "model and key path arrays must have same number of elements");
   }
 
   bool shouldVisitTemplateInstantiations() const { return false; }
@@ -253,15 +260,45 @@ public:
     if (E->getNumArgs() != 3 || !E->isInstanceMessage())
       return true;
 
-    if (E->getSelector() != BindSelector)
-      return true;
+    if (E->getSelector() == BindSelector)
+      ValidateModeAndKeyPath(E->getArg(0), E->getArg(1));
 
-    Expr *ModelArg = E->getArg(0);
-    QualType ModelType = ModelArg->IgnoreImplicit()->getType();
-    ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(1));
+    if (E->getSelector() == BindMultipleSelector) {
+      ObjCArrayLiteral *ModelsLiteral = dyn_cast<ObjCArrayLiteral>(E->getArg(0)->IgnoreImplicit());
+      ObjCArrayLiteral *KeyPathsLiterals = dyn_cast<ObjCArrayLiteral>(E->getArg(1)->IgnoreImplicit());
+
+      if (ModelsLiteral && KeyPathsLiterals) {
+        if (ModelsLiteral->getNumElements() == KeyPathsLiterals->getNumElements()) {
+          for (unsigned ModelIdx = 0, ModelCount = ModelsLiteral->getNumElements();
+              ModelIdx < ModelCount; ++ModelIdx) {
+            Expr *ModelExpr = ModelsLiteral->getElement(ModelIdx);
+            Expr *KeyPathsExpr = KeyPathsLiterals->getElement(ModelIdx);
+
+            if (ObjCArrayLiteral *KeyPathsLiteral = dyn_cast<ObjCArrayLiteral>(KeyPathsExpr->IgnoreImplicit())) {
+              for (unsigned KeyPathIdx = 0, KeyPathCount = KeyPathsLiteral->getNumElements();
+                  KeyPathIdx < KeyPathCount; ++KeyPathIdx) {
+                Expr *KeyPathExpr = KeyPathsLiteral->getElement(KeyPathIdx);
+                ValidateModeAndKeyPath(ModelExpr, KeyPathExpr);
+              }
+            }
+          }
+
+        } else {
+          Compiler.getDiagnostics().Report(ModelsLiteral->getLocStart(), BindMultipleCountMismatchDiagID)
+            << ModelsLiteral << KeyPathsLiterals;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  void ValidateModeAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr) {
+    QualType ModelType = ModelExpr->IgnoreImplicit()->getType();
+    const ObjCStringLiteral *KeyPathLiteral = dyn_cast<const ObjCStringLiteral>(KeyPathExpr->IgnoreImplicit());
 
     if (!KeyPathLiteral)
-      return true;
+      return;
 
     QualType ObjType = ModelType;
     size_t Offset = 2; // @"
@@ -270,19 +307,18 @@ public:
       StringRef Key = KeyAndPath.first;
       bool Valid = Consumer->CheckKeyType(ObjType, Key);
       if (!Valid) {
-        SourceRange KeyRange = KeyPathLiteral->getSourceRange();
+        SourceRange KeyRange = KeyPathExpr->getSourceRange();
         SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
         KeyRange.setBegin(KeyStart);
         KeyRange.setEnd(KeyStart.getLocWithOffset(1));
 
         Compiler.getDiagnostics().Report(KeyStart, Consumer->KeyDiagID)
           << Key << ObjType->getPointeeType().getAsString()
-          << KeyRange << ModelArg->getSourceRange();
+          << KeyRange << ModelExpr->getSourceRange();
         break;
       }
       Offset += Key.size() + 1;
     }
-    return true;
   }
 };
 
