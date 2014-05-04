@@ -11,6 +11,7 @@
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/NSAPI.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/AST/Attr.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -106,7 +107,7 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
   if (!Method)
     return false;
 
-  ObjTypeInOut = Method->getReturnType();
+  ObjTypeInOut = Method->getResultType();
   if (!ObjTypeInOut->isObjCObjectPointerType())
     if (NSAPIObj->getNSNumberFactoryMethodKind(ObjTypeInOut).hasValue())
       ObjTypeInOut = NSNumberPtrType;
