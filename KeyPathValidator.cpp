@@ -94,7 +94,7 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
     ObjInterface = ObjPointerType->getInterfaceDecl();
 
   ObjCMethodDecl *Method = NULL;
-  {
+  if (ObjInterface) {
     Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
     Method = ObjInterface->lookupInstanceMethod(Sel);
 
