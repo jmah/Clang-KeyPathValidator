@@ -14,6 +14,8 @@ __attribute__((annotate("objc_kvc_container")))
 
 @interface SubVariation : Variation
 @property NSString *sub;
+@property (readonly, getter = collectionKVCProxy) NSArray *collection;
+@property (readonly, getter = funkyGetter) NSObject *funky;
 @end
 
 @protocol BarProtocol <NSObject>
@@ -58,6 +60,10 @@ static void testFn(void)
     [sv valueForKey:@"foo"];
     [sv valueForKeyPath:@"barLike.bar"];
     [sv valueForKeyPath:@"sub"];
+    [sv valueForKeyPath:@"collection"];
+    [sv valueForKeyPath:@"collectionKVCProxy"];
+    [sv valueForKeyPath:@"funky"]; // warn
+    [sv valueForKeyPath:@"funkyGetter"]; // warn
 
     NSObject <BarProtocol> *nsBar;
     [nsBar valueForKey:@"bar"];

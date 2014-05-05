@@ -57,34 +57,53 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
     std::copy(ObjType->qual_begin(), ObjType->qual_end(), std::back_inserter(ContainerDecls));
   }
 
-  Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
+  IdentifierInfo *ID = &Context.Idents.get(Key);
+  Selector Sel = Context.Selectors.getNullarySelector(ID);
   StringRef IsKey = ("is" + Key.substr(0, 1).upper() + Key.substr(1)).str();
   Selector IsSel = Context.Selectors.getNullarySelector(&Context.Idents.get(IsKey));
 
-  ObjCMethodDecl *Method = NULL;
+  QualType Type;
   for (std::vector<const ObjCContainerDecl *>::iterator Decl = ContainerDecls.begin(), DeclEnd = ContainerDecls.end();
       Decl != DeclEnd; ++Decl) {
 	// Call the "same" (textually) method on both protocols and interfaces, not declared by the superclass
 	if (const ObjCProtocolDecl *ProtoDecl = dyn_cast<const ObjCProtocolDecl>(*Decl)) {
-	  if ((Method = ProtoDecl->lookupMethod(Sel, true)))
+	  if (const ObjCMethodDecl *Method = ProtoDecl->lookupMethod(Sel, true)) {
+		Type = Method->getResultType();
 		break;
-	  if ((Method = ProtoDecl->lookupMethod(IsSel, true)))
+	  }
+	  if (const ObjCMethodDecl *Method = ProtoDecl->lookupMethod(IsSel, true)) {
+		Type = Method->getResultType();
 		break;
+	  }
+	  if (const ObjCPropertyDecl *Property = ProtoDecl->FindPropertyDeclaration(ID))
+		if (isKVCCollectionType(Property->getType())) {
+		  Type = Property->getType();
+		  break;
+		}
 	}
 	if (const ObjCInterfaceDecl *InterfaceDecl = dyn_cast<const ObjCInterfaceDecl>(*Decl)) {
-	  if ((Method = InterfaceDecl->lookupMethod(Sel, true)))
+	  if (const ObjCMethodDecl *Method = InterfaceDecl->lookupMethod(Sel, true)) {
+		Type = Method->getResultType();
 		break;
-	  if ((Method = InterfaceDecl->lookupMethod(IsSel, true)))
+	  }
+	  if (const ObjCMethodDecl *Method = InterfaceDecl->lookupMethod(IsSel, true)) {
+		Type = Method->getResultType();
 		break;
+	  }
+	  if (const ObjCPropertyDecl *Property = InterfaceDecl->FindPropertyDeclaration(ID))
+		if (isKVCCollectionType(Property->getType())) {
+		  Type = Property->getType();
+		  break;
+		}
 	}
   }
-  if (!Method)
+  if (Type.isNull())
     return false;
 
-  ObjTypeInOut = Method->getResultType();
-  if (!ObjTypeInOut->isObjCObjectPointerType())
-    if (NSAPIObj->getNSNumberFactoryMethodKind(ObjTypeInOut).hasValue())
-      ObjTypeInOut = NSNumberPtrType;
+  if (Type->isObjCObjectPointerType())
+	ObjTypeInOut = Type;
+  else if (NSAPIObj->getNSNumberFactoryMethodKind(Type).hasValue())
+	ObjTypeInOut = NSNumberPtrType;
 
   // TODO: Primitives to NSValue
   return true;
@@ -117,4 +136,14 @@ bool KeyPathValidationConsumer::isKVCContainer(QualType Type) {
     ObjInterface = ObjInterface->getSuperClass();
   }
   return false;
+}
+
+bool KeyPathValidationConsumer::isKVCCollectionType(QualType Type) {
+  const ObjCInterfaceDecl *ObjInterface = NULL;
+  if (const ObjCObjectPointerType *ObjPointerType = Type->getAsObjCInterfacePointerType())
+    ObjInterface = ObjPointerType->getInterfaceDecl();
+
+  return (NSArrayInterface->isSuperClassOf(ObjInterface) ||
+		  NSSetInterface ->isSuperClassOf(ObjInterface)||
+		  NSOrderedSetInterface->isSuperClassOf(ObjInterface));
 }

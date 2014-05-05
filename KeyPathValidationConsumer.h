@@ -47,6 +47,7 @@ private:
 
   void cacheNSTypes();
   bool isKVCContainer(QualType type);
+  bool isKVCCollectionType(QualType type);
 };
 
 #endif
