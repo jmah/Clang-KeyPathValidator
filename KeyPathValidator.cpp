@@ -89,20 +89,25 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
     return true; // leave ObjTypeInOut unchanged
 
 
-  const ObjCInterfaceDecl *ObjInterface = NULL;
-  if (const ObjCObjectPointerType *ObjPointerType = ObjTypeInOut->getAsObjCInterfacePointerType())
-    ObjInterface = ObjPointerType->getInterfaceDecl();
+  std::vector<const ObjCContainerDecl *> ContainerDecls;
+  if (const ObjCObjectPointerType *ObjType = ObjTypeInOut->getAs<ObjCObjectPointerType>()) {
+    if (const ObjCInterfaceDecl *Interface = ObjType->getInterfaceDecl()) {
+      ContainerDecls.push_back(Interface);
+    }
+    std::copy(ObjType->qual_begin(), ObjType->qual_end(), std::back_inserter(ContainerDecls));
+  }
+
+  Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
+  StringRef IsKey = ("is" + Key.substr(0, 1).upper() + Key.substr(1)).str();
+  Selector IsSel = Context.Selectors.getNullarySelector(&Context.Idents.get(IsKey));
 
   ObjCMethodDecl *Method = NULL;
-  if (ObjInterface) {
-    Selector Sel = Context.Selectors.getNullarySelector(&Context.Idents.get(Key));
-    Method = ObjInterface->lookupInstanceMethod(Sel);
-
-    if (!Method) {
-      StringRef IsKey = ("is" + Key.substr(0, 1).upper() + Key.substr(1)).str();
-      Selector IsSel = Context.Selectors.getNullarySelector(&Context.Idents.get(IsKey));
-      Method = ObjInterface->lookupInstanceMethod(IsSel);
-    }
+  for (std::vector<const ObjCContainerDecl *>::iterator Decl = ContainerDecls.begin(), DeclEnd = ContainerDecls.end();
+      Decl != DeclEnd; ++Decl) {
+    if ((Method = (*Decl)->getInstanceMethod(Sel)))
+      break;
+    if ((Method = (*Decl)->getInstanceMethod(IsSel)))
+      break;
   }
   if (!Method)
     return false;
@@ -196,14 +201,7 @@ public:
       Keys[0] = KeyPathString;
     }
 
-    ASTContext &Ctx = Compiler.getASTContext();
-    ObjCInterfaceDecl *Interface = E->getReceiverInterface();
-    QualType ObjType;
-
-    if (Interface)
-      ObjType = Ctx.getObjCObjectPointerType(Ctx.getObjCInterfaceType(Interface));
-    else
-      ObjType = Ctx.getObjCIdType();
+    QualType ObjType = E->getReceiverType();
 
     size_t Offset = path ? 2 : 0; // @"  (but whole string for non-path, TODO: Set to 2 and properly adjust end of range)
     for (size_t i = 0; i < KeyCount; i++) {
