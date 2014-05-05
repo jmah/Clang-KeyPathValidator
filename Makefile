@@ -20,3 +20,9 @@ include $(CLANG_LEVEL)/Makefile
 ifeq ($(OS),Darwin)
   LDFLAGS=-Wl,-undefined,dynamic_lookup
 endif
+
+
+run: all
+	$(LEVEL)/Release+Asserts/bin/clang -Xclang -load -Xclang $(LEVEL)/Release+Asserts/lib/libKeyPathValidator.dylib -Xclang -plugin -Xclang validate-key-paths -fsyntax-only -fobjc-arc test/basic.m test/binder.m
+
+.PHONY: run
