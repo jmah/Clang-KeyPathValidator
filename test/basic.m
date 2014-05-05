@@ -12,6 +12,10 @@ __attribute__((annotate("objc_kvc_container")))
 @property id<BarProtocol> barLike;
 @end
 
+@interface SubVariation : Variation
+@property NSString *sub;
+@end
+
 @protocol BarProtocol <NSObject>
 @property NSString *bar;
 @end
@@ -49,6 +53,11 @@ static void testFn(void)
     [v valueForKey:@"foo"];
     [v valueForKeyPath:@"barLike.bar"];
     [v valueForKeyPath:@"barLike.doesNotExist"]; // warn
+
+    SubVariation *sv;
+    [sv valueForKey:@"foo"];
+    [sv valueForKeyPath:@"barLike.bar"];
+    [sv valueForKeyPath:@"sub"];
 
     NSObject <BarProtocol> *nsBar;
     [nsBar valueForKey:@"bar"];

@@ -64,10 +64,19 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
   ObjCMethodDecl *Method = NULL;
   for (std::vector<const ObjCContainerDecl *>::iterator Decl = ContainerDecls.begin(), DeclEnd = ContainerDecls.end();
       Decl != DeclEnd; ++Decl) {
-    if ((Method = (*Decl)->getInstanceMethod(Sel)))
-      break;
-    if ((Method = (*Decl)->getInstanceMethod(IsSel)))
-      break;
+	// Call the "same" (textually) method on both protocols and interfaces, not declared by the superclass
+	if (const ObjCProtocolDecl *ProtoDecl = dyn_cast<const ObjCProtocolDecl>(*Decl)) {
+	  if ((Method = ProtoDecl->lookupMethod(Sel, true)))
+		break;
+	  if ((Method = ProtoDecl->lookupMethod(IsSel, true)))
+		break;
+	}
+	if (const ObjCInterfaceDecl *InterfaceDecl = dyn_cast<const ObjCInterfaceDecl>(*Decl)) {
+	  if ((Method = InterfaceDecl->lookupMethod(Sel, true)))
+		break;
+	  if ((Method = InterfaceDecl->lookupMethod(IsSel, true)))
+		break;
+	}
   }
   if (!Method)
     return false;
