@@ -262,7 +262,7 @@ public:
       return true;
 
     if (E->getSelector() == BindSelector)
-      ValidateModeAndKeyPath(E->getArg(0), E->getArg(1));
+      ValidateModelAndKeyPath(E->getArg(0), E->getArg(1));
 
     if (E->getSelector() == BindMultipleSelector) {
       ObjCArrayLiteral *ModelsLiteral = dyn_cast<ObjCArrayLiteral>(E->getArg(0)->IgnoreImplicit());
@@ -279,7 +279,7 @@ public:
               for (unsigned KeyPathIdx = 0, KeyPathCount = KeyPathsLiteral->getNumElements();
                   KeyPathIdx < KeyPathCount; ++KeyPathIdx) {
                 Expr *KeyPathExpr = KeyPathsLiteral->getElement(KeyPathIdx);
-                ValidateModeAndKeyPath(ModelExpr, KeyPathExpr);
+                ValidateModelAndKeyPath(ModelExpr, KeyPathExpr);
               }
             }
           }
@@ -294,7 +294,7 @@ public:
     return true;
   }
 
-  void ValidateModeAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr) {
+  void ValidateModelAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr) {
     QualType ModelType = ModelExpr->IgnoreImplicit()->getType();
     const ObjCStringLiteral *KeyPathLiteral = dyn_cast<const ObjCStringLiteral>(KeyPathExpr->IgnoreImplicit());
 
