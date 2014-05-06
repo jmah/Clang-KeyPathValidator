@@ -26,7 +26,10 @@ public:
     , Context(Compiler.getASTContext())
   {
     NSAPIObj.reset(new NSAPI(Context));
-    KeyDiagID = Compiler.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Warning, "key '%0' not found on type %1");
+	DiagnosticsEngine::Level L = DiagnosticsEngine::Warning;
+	if (Compiler.getDiagnostics().getWarningsAsErrors())
+	  L = DiagnosticsEngine::Error;
+    KeyDiagID = Compiler.getDiagnostics().getCustomDiagID(L, "key '%0' not found on type %1");
   }
 
   virtual void HandleTranslationUnit(ASTContext &Context);
