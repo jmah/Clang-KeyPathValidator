@@ -9,6 +9,7 @@
 #include "clang/Frontend/FrontendPluginRegistry.h"
 #include "KeyPathValidationConsumer.h"
 #include "ValueForKeyVisitor.h"
+#include "KeyPathsAffectingVisitor.h"
 #include "FitbitFBBinderVisitor.h"
 
 using namespace clang;
@@ -18,6 +19,7 @@ void KeyPathValidationConsumer::HandleTranslationUnit(ASTContext &Context) {
   cacheNSTypes();
 
   ValueForKeyVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
+  KeyPathsAffectingVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
   FBBinderVisitor(this, Compiler).TraverseDecl(Context.getTranslationUnitDecl());
 }
 

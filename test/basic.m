@@ -73,3 +73,44 @@ static void testFn(void)
     [barBaz valueForKey:@"bar"];
     [barBaz valueForKey:@"baz"];
 }
+
+
+@implementation Variation
+
++ (NSSet *)keyPathsForValuesAffectingBaz
+{
+    return [NSSet setWithObjects:
+        @"foo",
+        @"barLike.bar",
+        @"barLike.doesNotExist", // warn
+        @"doesNotExist", // warn
+        nil];
+}
+- (id)baz
+{ return @"dummy"; }
+
++ (NSSet *)keyPathsForValuesAffectingBob
+{
+    return [NSSet setWithObject:@"self"];
+}
+- (id)bob
+{ return @"dummy"; }
+
++ (NSSet *)keyPathsForValuesAffectingAlice
+{
+    return [NSSet setWithObject:@"secret"];
+}
+- (id)alice
+{ return @"dummy"; }
+
+- (id)secret
+{ return nil; }
+
++ (NSSet *)keyPathsForValuesAffectingEve
+{
+    return [NSSet setWithObject:@"doesNotExist"]; // warn
+}
+- (id)eve
+{ return @"dummy"; }
+
+@end
