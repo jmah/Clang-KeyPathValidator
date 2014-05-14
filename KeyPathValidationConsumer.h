@@ -40,6 +40,12 @@ public:
     emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(ModelExpr->IgnoreImplicit()->getType(), ModelExpr, KeyPathExpr);
   }
 
+  void emitDiagnosticsForTypeAndKey(QualType Type, const Expr *KeyExpr) {
+    const ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(KeyExpr);
+    if (KeyPathLiteral)
+      emitDiagnosticsForTypeAndMaybeReceiverAndKey(Type, SourceRange(), KeyPathLiteral->getString()->getString(), KeyExpr->getSourceRange(), 0);
+  }
+
   void emitDiagnosticsForTypeAndKeyPath(QualType Type, const Expr *KeyPathExpr) {
     emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(Type, NULL, KeyPathExpr);
   }
@@ -61,6 +67,7 @@ private:
   bool isKVCCollectionType(QualType type);
 
   void emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr);
+  bool emitDiagnosticsForTypeAndMaybeReceiverAndKey(QualType &ObjTypeInOut, SourceRange ModelRange, StringRef Key, SourceRange KeyRange, size_t Offset);
 };
 
 #endif

@@ -18,48 +18,10 @@ bool ValueForKeyVisitor::VisitObjCMessageExpr(ObjCMessageExpr *E) {
   if (Sel != VFKSelector && Sel != VFKPathSelector)
     return true;
 
-  ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(E->getArg(0));
-  if (!KeyPathLiteral)
-    return true;
+  if (Sel == VFKPathSelector)
+    Consumer->emitDiagnosticsForTypeAndKeyPath(E->getReceiverType(), E->getArg(0));
+  else
+    Consumer->emitDiagnosticsForTypeAndKey(E->getReceiverType(), E->getArg(0));
 
-  bool path = (Sel == VFKPathSelector);
-  StringRef KeyPathString = KeyPathLiteral->getString()->getString();
-  const size_t KeyCount = 1 + (path ? KeyPathString.count('.') : 0);
-
-  StringRef *Keys = new StringRef[KeyCount];
-  if (path) {
-    typedef std::pair<StringRef,StringRef> StringPair;
-    size_t i = 0;
-    for (StringPair KeyAndPath = KeyPathString.split('.');
-        KeyAndPath.first.size() > 0;
-        KeyAndPath = KeyAndPath.second.split('.'))
-      Keys[i++] = KeyAndPath.first;
-  } else {
-    Keys[0] = KeyPathString;
-  }
-
-  QualType ObjType = E->getReceiverType();
-
-  size_t Offset = path ? 2 : 0; // @"  (but whole string for non-path, TODO: Set to 2 and properly adjust end of range)
-  for (size_t i = 0; i < KeyCount; i++) {
-    StringRef Key = Keys[i];
-
-    bool Valid = Consumer->CheckKeyType(ObjType, Key);
-    if (!Valid) {
-      SourceRange KeyRange = KeyPathLiteral->getSourceRange();
-      SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
-      KeyRange.setBegin(KeyStart);
-      if (path)
-        KeyRange.setEnd(KeyStart.getLocWithOffset(1));
-
-      Compiler.getDiagnostics().Report(KeyStart, Consumer->KeyDiagID)
-        << Key << ObjType->getPointeeType().getAsString()
-        << KeyRange << E->getReceiverRange();
-      break;
-    }
-    Offset += Key.size() + 1;
-  }
-
-  delete[] Keys;
   return true;
 }

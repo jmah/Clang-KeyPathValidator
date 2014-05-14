@@ -157,24 +157,35 @@ void KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath
   if (!KeyPathLiteral)
     return;
 
+  SourceRange ModelRange;
+  if (ModelExpr)
+    ModelRange = ModelExpr->getSourceRange();
+
   QualType ObjType = Type;
   size_t Offset = 2; // @"
   typedef std::pair<StringRef,StringRef> StringPair;
   for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
     StringRef Key = KeyAndPath.first;
-    bool Valid = CheckKeyType(ObjType, Key);
-    if (!Valid) {
-      SourceRange KeyRange = KeyPathExpr->getSourceRange();
-      SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
-      KeyRange.setBegin(KeyStart);
-      KeyRange.setEnd(KeyStart.getLocWithOffset(1));
-
-      DiagnosticBuilder DB = Compiler.getDiagnostics().Report(KeyStart, KeyDiagID);
-      DB << Key << ObjType->getPointeeType().getAsString() << KeyRange;
-      if (ModelExpr)
-        DB << ModelExpr->getSourceRange();
+    bool Valid = emitDiagnosticsForTypeAndMaybeReceiverAndKey(ObjType, ModelRange, Key, KeyPathExpr->getSourceRange(), Offset);
+    if (!Valid)
       break;
-    }
     Offset += Key.size() + 1;
   }
+}
+
+bool KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKey(QualType &ObjTypeInOut, SourceRange ModelRange, StringRef Key, SourceRange KeyRange, size_t Offset) {
+  bool Valid = CheckKeyType(ObjTypeInOut, Key);
+  if (Valid)
+    return Valid;
+
+  SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
+  KeyRange.setBegin(KeyStart);
+  KeyRange.setEnd(KeyStart.getLocWithOffset(1));
+
+  DiagnosticBuilder DB = Compiler.getDiagnostics().Report(KeyStart, KeyDiagID);
+  DB << Key << ObjTypeInOut->getPointeeType().getAsString() << KeyRange;
+  if (ModelRange.isValid())
+    DB << ModelRange;
+
+  return Valid;
 }
