@@ -18,13 +18,11 @@ using namespace clang;
 
 class ValueForKeyVisitor : public RecursiveASTVisitor<ValueForKeyVisitor> {
   KeyPathValidationConsumer *Consumer;
-  const CompilerInstance &Compiler;
   Selector VFKSelector, VFKPathSelector;
 
 public:
   ValueForKeyVisitor(KeyPathValidationConsumer *Consumer, const CompilerInstance &Compiler)
     : Consumer(Consumer)
-    , Compiler(Compiler)
   {
     ASTContext &Ctx = Compiler.getASTContext();
     VFKSelector = Ctx.Selectors.getUnarySelector(&Ctx.Idents.get("valueForKey"));
