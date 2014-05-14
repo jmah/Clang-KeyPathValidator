@@ -38,7 +38,7 @@ void KeyPathValidationConsumer::cacheNSTypes() {
 }
 
 
-bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key) {
+bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &Key, bool AllowPrivate) {
   if (isKVCContainer(ObjTypeInOut)) {
     ObjTypeInOut = Context.getObjCIdType();
     return true;
@@ -95,6 +95,17 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
 		  Type = Property->getType();
 		  break;
 		}
+
+      if (AllowPrivate) {
+        if (const ObjCMethodDecl *Method = InterfaceDecl->lookupPrivateMethod(Sel, true)) {
+          Type = Method->getResultType();
+          break;
+        }
+        if (const ObjCMethodDecl *Method = InterfaceDecl->lookupPrivateMethod(IsSel, true)) {
+          Type = Method->getResultType();
+          break;
+        }
+      }
 	}
   }
   if (Type.isNull())
@@ -151,7 +162,7 @@ bool KeyPathValidationConsumer::isKVCCollectionType(QualType Type) {
 }
 
 
-void KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr) {
+void KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr, bool AllowPrivate) {
   const ObjCStringLiteral *KeyPathLiteral = dyn_cast<const ObjCStringLiteral>(KeyPathExpr->IgnoreImplicit());
 
   if (!KeyPathLiteral)
@@ -166,15 +177,15 @@ void KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath
   typedef std::pair<StringRef,StringRef> StringPair;
   for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
     StringRef Key = KeyAndPath.first;
-    bool Valid = emitDiagnosticsForTypeAndMaybeReceiverAndKey(ObjType, ModelRange, Key, KeyPathExpr->getSourceRange(), Offset);
+    bool Valid = emitDiagnosticsForTypeAndMaybeReceiverAndKey(ObjType, ModelRange, Key, KeyPathExpr->getSourceRange(), Offset, AllowPrivate);
     if (!Valid)
       break;
     Offset += Key.size() + 1;
   }
 }
 
-bool KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKey(QualType &ObjTypeInOut, SourceRange ModelRange, StringRef Key, SourceRange KeyRange, size_t Offset) {
-  bool Valid = CheckKeyType(ObjTypeInOut, Key);
+bool KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKey(QualType &ObjTypeInOut, SourceRange ModelRange, StringRef Key, SourceRange KeyRange, size_t Offset, bool AllowPrivate) {
+  bool Valid = CheckKeyType(ObjTypeInOut, Key, AllowPrivate);
   if (Valid)
     return Valid;
 

@@ -34,20 +34,20 @@ public:
 
   virtual void HandleTranslationUnit(ASTContext &Context);
 
-  bool CheckKeyType(QualType &ObjTypeInOut, StringRef &Key);
+  bool CheckKeyType(QualType &ObjTypeInOut, StringRef &Key, bool AllowPrivate);
 
-  void emitDiagnosticsForReceiverAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr) {
-    emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(ModelExpr->IgnoreImplicit()->getType(), ModelExpr, KeyPathExpr);
+  void emitDiagnosticsForReceiverAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr, bool AllowPrivate=false) {
+    emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(ModelExpr->IgnoreImplicit()->getType(), ModelExpr, KeyPathExpr, AllowPrivate);
   }
 
-  void emitDiagnosticsForTypeAndKey(QualType Type, const Expr *KeyExpr) {
+  void emitDiagnosticsForTypeAndKey(QualType Type, const Expr *KeyExpr, bool AllowPrivate=false) {
     const ObjCStringLiteral *KeyPathLiteral = dyn_cast<ObjCStringLiteral>(KeyExpr);
     if (KeyPathLiteral)
-      emitDiagnosticsForTypeAndMaybeReceiverAndKey(Type, SourceRange(), KeyPathLiteral->getString()->getString(), KeyExpr->getSourceRange(), 0);
+      emitDiagnosticsForTypeAndMaybeReceiverAndKey(Type, SourceRange(), KeyPathLiteral->getString()->getString(), KeyExpr->getSourceRange(), 0, AllowPrivate);
   }
 
-  void emitDiagnosticsForTypeAndKeyPath(QualType Type, const Expr *KeyPathExpr) {
-    emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(Type, NULL, KeyPathExpr);
+  void emitDiagnosticsForTypeAndKeyPath(QualType Type, const Expr *KeyPathExpr, bool AllowPrivate=false) {
+    emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(Type, NULL, KeyPathExpr, AllowPrivate);
   }
 
   unsigned KeyDiagID;
@@ -66,8 +66,8 @@ private:
   bool isKVCContainer(QualType type);
   bool isKVCCollectionType(QualType type);
 
-  void emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr);
-  bool emitDiagnosticsForTypeAndMaybeReceiverAndKey(QualType &ObjTypeInOut, SourceRange ModelRange, StringRef Key, SourceRange KeyRange, size_t Offset);
+  void emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr, bool AllowPrivate);
+  bool emitDiagnosticsForTypeAndMaybeReceiverAndKey(QualType &ObjTypeInOut, SourceRange ModelRange, StringRef Key, SourceRange KeyRange, size_t Offset, bool AllowPrivate);
 };
 
 #endif
