@@ -30,7 +30,7 @@ bool FBBinderVisitor::VisitObjCMessageExpr(ObjCMessageExpr *E) {
     return true;
 
   if (E->getSelector() == BindSelector)
-    ValidateModelAndKeyPath(E->getArg(0), E->getArg(1));
+    Consumer->emitDiagnosticsForReceiverAndKeyPath(E->getArg(0), E->getArg(1));
 
   if (E->getSelector() == BindMultipleSelector) {
     ObjCArrayLiteral *ModelsLiteral = dyn_cast<ObjCArrayLiteral>(E->getArg(0)->IgnoreImplicit());
@@ -47,7 +47,7 @@ bool FBBinderVisitor::VisitObjCMessageExpr(ObjCMessageExpr *E) {
             for (unsigned KeyPathIdx = 0, KeyPathCount = KeyPathsLiteral->getNumElements();
             KeyPathIdx < KeyPathCount; ++KeyPathIdx) {
               Expr *KeyPathExpr = KeyPathsLiteral->getElement(KeyPathIdx);
-              ValidateModelAndKeyPath(ModelExpr, KeyPathExpr);
+              Consumer->emitDiagnosticsForReceiverAndKeyPath(ModelExpr, KeyPathExpr);
             }
           }
         }
@@ -60,32 +60,4 @@ bool FBBinderVisitor::VisitObjCMessageExpr(ObjCMessageExpr *E) {
   }
 
   return true;
-}
-
-void FBBinderVisitor::ValidateModelAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr) {
-  QualType ModelType = ModelExpr->IgnoreImplicit()->getType();
-  const ObjCStringLiteral *KeyPathLiteral = dyn_cast<const ObjCStringLiteral>(KeyPathExpr->IgnoreImplicit());
-
-  if (!KeyPathLiteral)
-    return;
-
-  QualType ObjType = ModelType;
-  size_t Offset = 2; // @"
-  typedef std::pair<StringRef,StringRef> StringPair;
-  for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
-    StringRef Key = KeyAndPath.first;
-    bool Valid = Consumer->CheckKeyType(ObjType, Key);
-    if (!Valid) {
-      SourceRange KeyRange = KeyPathExpr->getSourceRange();
-      SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
-      KeyRange.setBegin(KeyStart);
-      KeyRange.setEnd(KeyStart.getLocWithOffset(1));
-
-      Compiler.getDiagnostics().Report(KeyStart, Consumer->KeyDiagID)
-        << Key << ObjType->getPointeeType().getAsString()
-          << KeyRange << ModelExpr->getSourceRange();
-      break;
-    }
-    Offset += Key.size() + 1;
-  }
 }

@@ -109,6 +109,7 @@ bool KeyPathValidationConsumer::CheckKeyType(QualType &ObjTypeInOut, StringRef &
   return true;
 }
 
+
 bool KeyPathValidationConsumer::isKVCContainer(QualType Type) {
   if (Type->isObjCIdType())
     return true;
@@ -138,12 +139,42 @@ bool KeyPathValidationConsumer::isKVCContainer(QualType Type) {
   return false;
 }
 
+
 bool KeyPathValidationConsumer::isKVCCollectionType(QualType Type) {
   const ObjCInterfaceDecl *ObjInterface = NULL;
   if (const ObjCObjectPointerType *ObjPointerType = Type->getAsObjCInterfacePointerType())
     ObjInterface = ObjPointerType->getInterfaceDecl();
 
   return (NSArrayInterface->isSuperClassOf(ObjInterface) ||
-		  NSSetInterface ->isSuperClassOf(ObjInterface)||
+		  NSSetInterface->isSuperClassOf(ObjInterface) ||
 		  NSOrderedSetInterface->isSuperClassOf(ObjInterface));
+}
+
+
+void KeyPathValidationConsumer::emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr) {
+  const ObjCStringLiteral *KeyPathLiteral = dyn_cast<const ObjCStringLiteral>(KeyPathExpr->IgnoreImplicit());
+
+  if (!KeyPathLiteral)
+    return;
+
+  QualType ObjType = Type;
+  size_t Offset = 2; // @"
+  typedef std::pair<StringRef,StringRef> StringPair;
+  for (StringPair KeyAndPath = KeyPathLiteral->getString()->getString().split('.'); KeyAndPath.first.size() > 0; KeyAndPath = KeyAndPath.second.split('.')) {
+    StringRef Key = KeyAndPath.first;
+    bool Valid = CheckKeyType(ObjType, Key);
+    if (!Valid) {
+      SourceRange KeyRange = KeyPathExpr->getSourceRange();
+      SourceLocation KeyStart = KeyRange.getBegin().getLocWithOffset(Offset);
+      KeyRange.setBegin(KeyStart);
+      KeyRange.setEnd(KeyStart.getLocWithOffset(1));
+
+      DiagnosticBuilder DB = Compiler.getDiagnostics().Report(KeyStart, KeyDiagID);
+      DB << Key << ObjType->getPointeeType().getAsString() << KeyRange;
+      if (ModelExpr)
+        DB << ModelExpr->getSourceRange();
+      break;
+    }
+    Offset += Key.size() + 1;
+  }
 }

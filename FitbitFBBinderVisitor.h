@@ -31,7 +31,6 @@ public:
   bool shouldWalkTypesOfTypeLocs() const { return false; }
 
   bool VisitObjCMessageExpr(ObjCMessageExpr *E);
-  void ValidateModelAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr);
 };
 
 #endif

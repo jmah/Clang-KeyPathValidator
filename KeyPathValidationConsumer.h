@@ -36,6 +36,14 @@ public:
 
   bool CheckKeyType(QualType &ObjTypeInOut, StringRef &Key);
 
+  void emitDiagnosticsForReceiverAndKeyPath(const Expr *ModelExpr, const Expr *KeyPathExpr) {
+    emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(ModelExpr->IgnoreImplicit()->getType(), ModelExpr, KeyPathExpr);
+  }
+
+  void emitDiagnosticsForTypeAndKeyPath(QualType Type, const Expr *KeyPathExpr) {
+    emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(Type, NULL, KeyPathExpr);
+  }
+
   unsigned KeyDiagID;
 
 private:
@@ -51,6 +59,8 @@ private:
   void cacheNSTypes();
   bool isKVCContainer(QualType type);
   bool isKVCCollectionType(QualType type);
+
+  void emitDiagnosticsForTypeAndMaybeReceiverAndKeyPath(QualType Type, const Expr *ModelExpr, const Expr *KeyPathExpr);
 };
 
 #endif
