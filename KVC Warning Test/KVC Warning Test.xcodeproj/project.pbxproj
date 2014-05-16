@@ -1,0 +1,245 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0B34F1961925D54400C4E87B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B34F1951925D54400C4E87B /* Foundation.framework */; };
+		0B34F1991925D54400C4E87B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B34F1981925D54400C4E87B /* main.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		0B34F1901925D54400C4E87B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0B34F1921925D54400C4E87B /* KVC Warning Test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "KVC Warning Test"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B34F1951925D54400C4E87B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		0B34F1981925D54400C4E87B /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; usesTabs = 0; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0B34F18F1925D54400C4E87B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B34F1961925D54400C4E87B /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0B34F1891925D54400C4E87B = {
+			isa = PBXGroup;
+			children = (
+				0B34F1971925D54400C4E87B /* KVC Warning Test */,
+				0B34F1941925D54400C4E87B /* Frameworks */,
+				0B34F1931925D54400C4E87B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0B34F1931925D54400C4E87B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0B34F1921925D54400C4E87B /* KVC Warning Test */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0B34F1941925D54400C4E87B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0B34F1951925D54400C4E87B /* Foundation.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		0B34F1971925D54400C4E87B /* KVC Warning Test */ = {
+			isa = PBXGroup;
+			children = (
+				0B34F1981925D54400C4E87B /* main.m */,
+			);
+			name = "KVC Warning Test";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0B34F1911925D54400C4E87B /* KVC Warning Test */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0B34F1A01925D54400C4E87B /* Build configuration list for PBXNativeTarget "KVC Warning Test" */;
+			buildPhases = (
+				0B34F18E1925D54400C4E87B /* Sources */,
+				0B34F18F1925D54400C4E87B /* Frameworks */,
+				0B34F1901925D54400C4E87B /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "KVC Warning Test";
+			productName = "KVC Warning Test";
+			productReference = 0B34F1921925D54400C4E87B /* KVC Warning Test */;
+			productType = "com.apple.product-type.tool";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0B34F18A1925D54400C4E87B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0510;
+				ORGANIZATIONNAME = "Jonathon Mah";
+			};
+			buildConfigurationList = 0B34F18D1925D54400C4E87B /* Build configuration list for PBXProject "KVC Warning Test" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 0B34F1891925D54400C4E87B;
+			productRefGroup = 0B34F1931925D54400C4E87B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0B34F1911925D54400C4E87B /* KVC Warning Test */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0B34F18E1925D54400C4E87B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B34F1991925D54400C4E87B /* main.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0B34F19E1925D54400C4E87B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		0B34F19F1925D54400C4E87B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		0B34F1A11925D54400C4E87B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "$(SRCROOT)/clang_warning_wrapper.sh";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		0B34F1A21925D54400C4E87B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CC = "$(SRCROOT)/clang_warning_wrapper.sh";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0B34F18D1925D54400C4E87B /* Build configuration list for PBXProject "KVC Warning Test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B34F19E1925D54400C4E87B /* Debug */,
+				0B34F19F1925D54400C4E87B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0B34F1A01925D54400C4E87B /* Build configuration list for PBXNativeTarget "KVC Warning Test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B34F1A11925D54400C4E87B /* Debug */,
+				0B34F1A21925D54400C4E87B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0B34F18A1925D54400C4E87B /* Project object */;
+}

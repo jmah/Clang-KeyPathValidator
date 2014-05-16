@@ -23,6 +23,6 @@ endif
 
 
 run: all
-	$(LEVEL)/Release+Asserts/bin/clang -Xclang -load -Xclang $(LEVEL)/Release+Asserts/lib/libKeyPathValidator.dylib -Xclang -plugin -Xclang validate-key-paths -fsyntax-only -fobjc-arc test/basic.m test/binder.m
+	$(LEVEL)/Release/bin/clang -Xclang -load -Xclang $(LEVEL)/Release/lib/libKeyPathValidator.dylib -Xclang -plugin -Xclang validate-key-paths -fsyntax-only -fobjc-arc test/basic.m test/binder.m
 
 .PHONY: run
