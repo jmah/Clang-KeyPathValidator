@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		0B34F1961925D54400C4E87B /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B34F1951925D54400C4E87B /* Foundation.framework */; };
 		0B34F1991925D54400C4E87B /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B34F1981925D54400C4E87B /* main.m */; };
+		0B34F1A81925D73000C4E87B /* Department.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B34F1A71925D73000C4E87B /* Department.m */; };
+		0B34F1AB1925D73700C4E87B /* Employee.m in Sources */ = {isa = PBXBuildFile; fileRef = 0B34F1AA1925D73700C4E87B /* Employee.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,6 +29,10 @@
 		0B34F1921925D54400C4E87B /* KVC Warning Test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "KVC Warning Test"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0B34F1951925D54400C4E87B /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		0B34F1981925D54400C4E87B /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; usesTabs = 0; };
+		0B34F1A61925D73000C4E87B /* Department.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Department.h; sourceTree = "<group>"; };
+		0B34F1A71925D73000C4E87B /* Department.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Department.m; sourceTree = "<group>"; };
+		0B34F1A91925D73700C4E87B /* Employee.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Employee.h; sourceTree = "<group>"; };
+		0B34F1AA1925D73700C4E87B /* Employee.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Employee.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +50,10 @@
 		0B34F1891925D54400C4E87B = {
 			isa = PBXGroup;
 			children = (
+				0B34F1A91925D73700C4E87B /* Employee.h */,
+				0B34F1AA1925D73700C4E87B /* Employee.m */,
+				0B34F1A61925D73000C4E87B /* Department.h */,
+				0B34F1A71925D73000C4E87B /* Department.m */,
 				0B34F1971925D54400C4E87B /* KVC Warning Test */,
 				0B34F1941925D54400C4E87B /* Frameworks */,
 				0B34F1931925D54400C4E87B /* Products */,
@@ -126,6 +136,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				0B34F1991925D54400C4E87B /* main.m in Sources */,
+				0B34F1AB1925D73700C4E87B /* Employee.m in Sources */,
+				0B34F1A81925D73000C4E87B /* Department.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
