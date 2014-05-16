@@ -18,9 +18,11 @@
 
 	leadName = [self valueForKeyPath:@"department.leadEmployee.fulllName"]; // oops
 
+	leadName = [self valueForKeyPath:@"department.leadEmployee.fullName"];
+
 	leadName = [self valueForKey:@"department.leadEmployee.fullName"]; // oops
 
-	leadName = [self valueForKeyPath:@"department.leadEmployee.fullName"];
+	leadName = [self valueForKeyPath:@"department.leadEmployee.fullName.lenght"]; // oops
 
 	return [NSString stringWithFormat:@"<%@ %p '%@' departmentLead=%@>",
 			[self class], self, [self valueForKey:@"fullName"], leadName];
