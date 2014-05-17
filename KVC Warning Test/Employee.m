@@ -44,7 +44,7 @@
 }
 
 
-+ keyPathsForValuesAffectingTestDeps
++ (NSSet *)keyPathsForValuesAffectingTestDeps
 {
 	return [NSSet setWithObjects:
 			@"self",
