@@ -5,7 +5,12 @@ IFS=
 clang $@
 STATUS=$?
 
-CUSTOM_CLANG_ROOT=${CUSTOM_CLANG_ROOT:-$(dirname $0)/../../../../../Release}
+# When clang is built for Release:
+#CUSTOM_CLANG_ROOT=${CUSTOM_CLANG_ROOT:-$(dirname $0)/../../../../../Release}
+
+# For easy trying:
+CUSTOM_CLANG_ROOT=${CUSTOM_CLANG_ROOT:-$HOME/Downloads/kvc-clang-rel34-2014-05-17}
+
 if test "$STATUS" -eq 0 && test -d $CUSTOM_CLANG_ROOT && ! ( echo $@ | grep -wF -- -filelist ); then
 	# Xcode uses --serialize-diagnostics, which writes diagnostics to a file, overwriting the previous contents.
 	# Emit our additional diagnostics after the original has run.
