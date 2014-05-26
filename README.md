@@ -2,7 +2,7 @@
 
 This is a clang plug-in that performs checking on literal key paths passed to `valueForKeyPath:` and others.
 
-More info in [dev etc: Safe and Sane Key Paths](http://localhost:4000/code/2014/05/17/safe-and-sane-key-paths.html)
+More info in [dev etc: Safe and Sane Key Paths](http://devetc.org/code/2014/05/17/safe-and-sane-key-paths.html)
 
 To download and try it out, go to the [releases page](https://github.com/jmah/Clang-KeyPathValidator/releases).
 
